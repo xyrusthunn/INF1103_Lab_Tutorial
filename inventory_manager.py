@@ -61,24 +61,6 @@ def collect_user_entry():
         print("Invalid input. Please enter valid numbers for quantity, price, and stock count.")
         return item_name, None, None, None
 
-
-def handle_inventory_addition(current_sum, new_quantity):
-    if new_quantity <= 0:
-        return current_sum, False
-    else:
-        return current_sum + new_quantity, True
-
-
-def compute_tax(amount):
-    return amount * 0.10
-
-
-def display_summary(total_processed, rejected_count):
-    print("\n==== Final Inventory Report ====")
-    print(f"Total Deliveries Processed: {total_processed}")
-    print(f"Number of Failed/Rejected Entries: {rejected_count}")
-
-
 def main():
     inventory_count, inventory_dict, last_id = load_inventory_data()
     total_delivery_processed = len(inventory_dict)
@@ -123,10 +105,6 @@ def main():
                 save_inventory_data(inventory_dict)
                 print("\nInventory successfully saved to inventory.txt\n")
 
-                tax_amount = compute_tax(quantity)
-                print(f"Delivery accepted. Tax for this delivery: {tax_amount:.2f}\n")
-
-    display_summary(total_delivery_processed, failed_attempts)
 
 
 if __name__ == "__main__":
