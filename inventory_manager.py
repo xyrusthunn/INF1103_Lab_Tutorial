@@ -1,98 +1,87 @@
 import os
+import json
 
-def load_inventory_data():
-    total_inventory = 0
-    last_id = 1000 
-    inventory_dict = {} 
+def load_inventory():
+    if os.path.exists("inventory.json"):
+        try:
+            with open("inventory.json", "r") as file:
+                inventory = json.load(file)
+                print("inventory.json found.")
+                print("Inventory loaded successfully.")
+                return inventory
+        except json.JSONDecodeError:
+            print("inventory.json is corrupted. Starting with default inventory.")
+    
+    # Default initial inventory if file does not exist[cite: 1]
+    return {
+        "P001": {"name": "Laptop", "price": 1200.00, "stock": 15},
+        "P002": {"name": "Mouse", "price": 25.50, "stock": 40},
+        "P003": {"name": "Keyboard", "price": 45.00, "stock": 25}
+    }
 
-    try:
-        with open("inventory.txt", "r") as file:
-            for line in file:
-                line = line.strip()
-                if line:
-                    try:
-                        parts = line.split(',')
-                        current_id = int(parts[0].strip())
-                        product_name = parts[1].strip()
-                        qty = int(parts[2].strip())
-                        price = float(parts[3].strip())
-                        stock = int(parts[4].strip())
-
-                        if current_id > last_id:
-                            last_id = current_id
-
-                        inventory_dict[current_id] = {
-                            "name": product_name,
-                            "quantity": qty,
-                            "price": price,
-                            "stock": stock
-                        }
-                    except (ValueError, IndexError):
-                        pass
-    except FileNotFoundError:
-        pass
-
-    return inventory_dict, last_id
-
-def save_inventory_data(inventory_dict):
-    with open("inventory.txt", "w") as file:
-        for item_id, details in inventory_dict.items():
-            file.write(f"{item_id},{details['name']},{details['quantity']},{details['price']:.2f},{details['stock']}\n")
+def save_inventory(inventory_dict):
+    with open("inventory.json", "w") as file:
+        json.dump(inventory_dict, file, indent=4)
+    print("Inventory saved successfully to inventory.json.")
 
 def display_all(inventory_dict):
-    print("\n--- Current Inventory ---\n")
+    print("\nCurrent Inventory")
+    print("-" * 45)
     if not inventory_dict:
         print("Inventory is currently empty.")
-        return
+    else:
+        for item_id, details in inventory_dict.items():
+            print(f"ID: {item_id} | Name: {details['name']} | Price: ${details['price']:.2f} | Stock: {details['stock']}")
+    print("-" * 45)
 
-    for item_id, details in inventory_dict.items():
-        print(f"ID: {item_id} | Product: {details['name']} | Qty: {details['quantity']} | Price: ${details['price']:.2f} | Stock: {details['stock']}")
-    print()
+def add_product(inventory_dict):
+    print("\nAdd New Product")
+    
+    # Auto-generate next Product ID (e.g., P004)[cite: 2]
+    existing_ids = [int(p_id[1:]) for p_id in inventory_dict.keys() if p_id.startswith('P') and p_id[1:].isdigit()]
+    next_num = max(existing_ids) + 1 if existing_ids else 1
+    new_id = f"P{next_num:03d}"
+    print(f"Product ID: {new_id}")
 
-def add_product(inventory_dict, last_id):
-    product_name = input("Enter Product Name: ").strip()
+    product_name = input("Product Name: ").strip()
     if not product_name:
         print("Product name cannot be empty.")
-        return last_id
+        return
 
     try:
-        qty = int(input("Enter Quantity: ").strip())
-        price = float(input("Enter Price ($): ").strip())
-        stock = int(input("Enter Current Stock Count: ").strip())
+        price = float(input("Price: ").strip())
+        stock = int(input("Stock Quantity: ").strip())
     except ValueError:
-        print("Invalid input. Quantity, Price, and Stock must be numeric.")
-        return last_id
+        print("Invalid input. Price and Stock must be numeric.")
+        return
 
-    if qty <= 0:
-        print("Entry rejected due to negative or zero quantity.")
-        return last_id
+    if price < 0 or stock < 0:
+        print("Price and stock cannot be negative.")
+        return
 
-    last_id += 1
-    inventory_dict[last_id] = {
+    inventory_dict[new_id] = {
         "name": product_name,
-        "quantity": qty,
         "price": price,
         "stock": stock
     }
 
-    save_inventory_data(inventory_dict)
-    print(f"\nNew Product Added -> ID: {last_id} | Product: {product_name} | Qty: {qty} | Price: ${price:.2f} | Stock: {stock}")
-    print("Inventory successfully saved to inventory.txt\n")
-    return last_id
+    print("\nProduct added successfully!")
 
 def update_stock(inventory_dict):
-    try:
-        item_id = int(input("Enter Product ID to update stock: ").strip())
-    except ValueError:
-        print("Invalid ID format.")
-        return
+    print("\nUpdate Stock")
+    item_id = input("Enter Product ID: ").strip().upper()
 
     if item_id not in inventory_dict:
-        print(f"Product ID: {item_id} not found.")
+        print("Product not found.")
         return
 
+    product = inventory_dict[item_id]
+    print("\nProduct Found:")
+    print(f"Name: {product['name']}")
+    print(f"Current Stock: {product['stock']}\n")
+
     try:
-        new_stock = int(input(f"Enter new stock count for {inventory_dict[item_id]['name']}: ").strip())
+        new_stock = int(input("New Stock Quantity: ").strip())
     except ValueError:
         print("Invalid stock value.")
         return
@@ -102,47 +91,62 @@ def update_stock(inventory_dict):
         return
 
     inventory_dict[item_id]["stock"] = new_stock
-    save_inventory_data(inventory_dict)
-    print(f"Stock for ID: {item_id} ({inventory_dict[item_id]['name']}) updated to {new_stock}.")
+    print("\nStock updated successfully!")
 
 def search_product(inventory_dict):
-    query = input("Enter Product ID or Product Name to search: ").strip().lower()
-    found = False
+    print("\nSearch Product")
+    query = input("Enter Product ID: ").strip().upper()
 
-    for item_id, details in inventory_dict.items():
-        if str(item_id) == query or details["name"].lower() == query:
-            print(f"\nFound -> ID: {item_id} | Product: {details['name']} | Qty: {details['quantity']} | Price: ${details['price']:.2f} | Stock: {details['stock']}")
-            found = True
-
-    if not found:
-        print("No matching product found.")
+    if query in inventory_dict:
+        details = inventory_dict[query]
+        print("\nProduct Found")
+        print("-" * 45)
+        print(f"ID: {query}")
+        print(f"Name: {details['name']}")
+        print(f"Price: ${details['price']:.2f}")
+        print(f"Stock: {details['stock']}")
+        print("-" * 45)
+    else:
+        print("\nProduct not found.")
 
 def main():
-    inventory_dict, last_id = load_inventory_data()
+    print("========================================")
+    print("INVENTORY MANAGEMENT SYSTEM")
+    print("========================================\n")
+
+    inventory_dict = load_inventory()
 
     while True:
-        print("\n=== Inventory Management Menu ===")
+        print("\n----------- MENU -----------")
         print("1. Display All Products")
         print("2. Add Product")
         print("3. Update Stock")
         print("4. Search Product")
-        print("5. Quit")
+        print("5. Save Inventory")
+        print("6. Exit")
+        print("----------------------------")
 
-        choice = input("Select an option (1-5): ").strip()
+        choice = input("Enter option: ").strip()
 
         if choice == '1':
             display_all(inventory_dict)
         elif choice == '2':
-            last_id = add_product(inventory_dict, last_id)
+            add_product(inventory_dict)
         elif choice == '3':
             update_stock(inventory_dict)
         elif choice == '4':
             search_product(inventory_dict)
         elif choice == '5':
-            print("\nExiting inventory application...")
+            print("\nSaving inventory...")
+            save_inventory(inventory_dict)
+        elif choice == '6':
+            print("\nSaving inventory before exit...")
+            save_inventory(inventory_dict)
+            print("\nThank you for using Inventory Management System.")
+            print("Program terminated.")
             break
         else:
-            print("Invalid choice. Please enter a number from 1 to 5.")
+            print("Invalid choice. Please enter a number from 1 to 6.")
 
 if __name__ == "__main__":
     main()
