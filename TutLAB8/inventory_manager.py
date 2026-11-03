@@ -2,6 +2,91 @@ import os
 import json
 
 
+def load_inventory() -> Inventory:
+  if os.path.exists("inventory.json"):
+    try:
+      with open("inventory.json", "r") as file:
+        data = json.load(file)
+        print("inventory.json found.")
+        print("Inventory loaded successfully.")
+        return Inventory.from_dict(data)
+    except json.JSONDecodeError:
+      print("inventory.json is corrupted. Starting with default inventory.")
+
+  default_data = {
+      "P001": {"name": "Laptop", "price": 1200.00, "stock": 15},
+      "P002": {"name": "Mouse", "price": 25.50, "stock": 40},
+      "P003": {"name": "Keyboard", "price": 45.00, "stock": 25},
+  }
+  return Inventory.from_dict(default_data)
+
+
+def save_inventory(inventory: Inventory) -> None:
+  with open("inventory.json", "w") as file:
+    json.dump(inventory.to_dict(), file, indent=4)
+  print("Inventory saved successfully to inventory.json.")
+
+
+def add_product_menu(inventory: Inventory) -> None:
+  print("\nAdd New Product")
+  new_id = inventory.generate_next_id()
+  print(f"Product ID: {new_id}")
+
+  product_name = input("Product Name: ").strip()
+  if not product_name:
+    print("Product name cannot be empty.")
+    return
+
+  try:
+    price = float(input("Price: ").strip())
+    stock = int(input("Stock Quantity: ").strip())
+  except ValueError:
+    print("Invalid input. Price and Stock must be numeric.")
+    return
+
+  if price < 0 or stock < 0:
+    print("Price and stock cannot be negative.")
+    return
+
+  new_product = Product(new_id, product_name, price, stock)
+  inventory.add_product(new_product)
+  print("\nProduct added successfully!")
+
+
+def update_stock_menu(inventory: Inventory) -> None:
+  print("\nUpdate Stock")
+  item_id = input("Enter Product ID: ").strip().upper()
+  product = inventory.search_product(item_id)
+
+  if not product:
+    print("Product not found.")
+    return
+
+  print("\nProduct Found:")
+  print(f"Name: {product.name}")
+  print(f"Current Stock: {product.stock}\n")
+
+  try:
+    new_stock = int(input("New Stock Quantity: ").strip())
+    product.update_stock(new_stock)
+    print("\nStock updated successfully!")
+  except ValueError as e:
+    print(f"Invalid stock value: {e}")
+
+
+def search_product_menu(inventory: Inventory) -> None:
+  print("\nSearch Product")
+  query = input("Enter Product ID: ").strip().upper()
+  product = inventory.search_product(query)
+
+  if product:
+    print("\nProduct Found")
+    print("-" * 45)
+    product.display_information()
+    print("-" * 45)
+  else:
+    print("\nProduct not found.")
+
 
 class Product:
 
