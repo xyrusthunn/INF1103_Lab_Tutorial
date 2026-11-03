@@ -1,6 +1,92 @@
 import os
 import json
 
+
+
+class Product:
+
+  def __init__(self, product_id: str, name: str, price: float, stock: int):
+    self._product_id = product_id
+    self.name = name
+    self._price = price
+    self.stock = stock
+
+  @property
+  def product_id(self):
+    return self._product_id
+
+  @property
+  def price(self):
+    return self._price
+
+  def update_stock(self, quantity: int) -> None:
+    if quantity < 0:
+      raise ValueError("Stock count cannot be negative.")
+    self.stock = quantity
+
+  def display_information(self) -> None:
+    print(
+        f"ID: {self._product_id} | Name: {self.name} | Price:"
+        f" ${self._price:.2f} | Stock: {self.stock}"
+    )
+
+
+
+class Inventory:
+
+  def __init__(self):
+    self.products = {}
+
+  def add_product(self, product: Product) -> None:
+    self.products[product.product_id] = product
+
+  def search_product(self, product_id: str) -> Product | None:
+    return self.products.get(product_id.upper())
+
+  def display_all(self) -> None:
+    print("\nCurrent Inventory")
+    print("-" * 45)
+    if not self.products:
+      print("Inventory is currently empty.")
+    else:
+      for product in self.products.values():
+        product.display_information()
+    print("-" * 45)
+
+  def generate_next_id(self) -> str:
+    existing_ids = [
+        int(p_id[1:])
+        for p_id in self.products.keys()
+        if p_id.startswith("P") and p_id[1:].isdigit()
+    ]
+    next_num = max(existing_ids) + 1 if existing_ids else 1
+    return f"P{next_num:03d}"
+
+  def to_dict(self) -> dict:
+    return {
+        p_id: {
+            "name": p.name,
+            "price": p.price,
+            "stock": p.stock,
+        }
+        for p_id, p in self.products.items()
+    }
+
+  @classmethod
+  def from_dict(cls, data: dict):
+    inventory = cls()
+    for p_id, details in data.items():
+      prod = Product(
+          product_id=p_id,
+          name=details["name"],
+          price=float(details["price"]),
+          stock=int(details["stock"]),
+      )
+      inventory.add_product(prod)
+    return inventory
+
+
+
 def load_inventory():
     if os.path.exists("inventory.json"):
         try:
