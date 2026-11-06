@@ -69,107 +69,136 @@ class DigitalProduct(Product):
 
 class Inventory:
 
-  def __init__(self):
-    self.products = {}
+    def __init__(self):
+        self.products = {}
 
-  def add_product(self, product: Product) -> None:
-    self.products[product.product_id] = product
+    def add_product(self, product: Product) -> None:
+        self.products[product.product_id] = product
 
-  def search_product(self, product_id: str) -> Product | None:
-    return self.products.get(product_id.upper())
+    def search_product(self, product_id: str) -> Product | None:
+        return self.products.get(product_id.upper())
 
-  def display_all(self) -> None:
-    print("\nCurrent Inventory")
-    print("-" * 45)
-    if not self.products:
-      print("Inventory is currently empty.")
-    else:
-      for product in self.products.values():
-        product.display_information()
-    print("-" * 45)
+    def display_all(self) -> None:
+        print("\nCurrent Inventory")
+        print("-" * 45)
+        if not self.products:
+            print("Inventory is currently empty.")
+        else:
+            for product in self.products.values():
+                product.display_information()
+                print(f"Fulfilment: {product.get_fulfilment_info()}")
+                print("-" * 45)
 
-  def generate_next_id(self) -> str:
-    existing_ids = [
-        int(p_id[1:])
-        for p_id in self.products.keys()
-        if p_id.startswith("P") and p_id[1:].isdigit()
-    ]
-    next_num = max(existing_ids) + 1 if existing_ids else 1
-    return f"P{next_num:03d}"
+    def generate_next_id(self) -> str:
+        existing_ids = [
+            int(p_id[1:])
+            for p_id in self.products.keys()
+            if p_id.startswith("P") and p_id[1:].isdigit()
+        ]
+        next_num = max(existing_ids) + 1 if existing_ids else 1
+        return f"P{next_num:03d}"
 
-  def to_dict(self) -> dict:
-    return {
-        p_id: {
-            "name": p.name,
-            "price": p.price,
-            "stock": p.stock,
-        }
-        for p_id, p in self.products.items()
-    }
+    def to_dict(self) -> dict:
+        result = {}
+        for p_id, p in self.products.items():
+            p_data = {
+                "name": p.name,
+                "price": p.price,
+                "stock": p.stock,
+            }
+            if isinstance(p, PhysicalProduct):
+                p_data["type"] = "physical"
+                p_data["weight"] = p.weight
+            elif isinstance(p, DigitalProduct):
+                p_data["type"] = "digital"
+                p_data["download_size"] = p.download_size
+            result[p_id] = p_data
+        return result
 
-  @classmethod
-  def from_dict(cls, data: dict):
-    inventory = cls()
-    for p_id, details in data.items():
-      prod = Product(
-          product_id=p_id,
-          name=details["name"],
-          price=float(details["price"]),
-          stock=int(details["stock"]),
-      )
-      inventory.add_product(prod)
-    return inventory
+    @classmethod
+    def from_dict(cls, data: dict):
+        inventory = cls()
+        for p_id, details in data.items():
+            p_type = details.get("type", "physical")
+            if p_type == "physical":
+                prod = PhysicalProduct(
+                    product_id=p_id,
+                    name=details["name"],
+                    price=float(details["price"]),
+                    stock=int(details["stock"]),
+                    weight=float(details.get("weight", 1.0))
+                )
+            elif p_type == "digital":
+                prod = DigitalProduct(
+                    product_id=p_id,
+                    name=details["name"],
+                    price=float(details["price"]),
+                    stock=int(details["stock"]),
+                    download_size=float(details.get("download_size", 100.0))
+                )
+            inventory.add_product(prod)
+        return inventory
 
 
 def load_inventory() -> Inventory:
-  if os.path.exists("inventory.json"):
-    try:
-      with open("inventory.json", "r") as file:
-        data = json.load(file)
-        print("inventory.json found.")
-        print("Inventory loaded successfully.")
-        return Inventory.from_dict(data)
-    except json.JSONDecodeError:
-      print("inventory.json is corrupted. Starting with default inventory.")
+    if os.path.exists("inventory.json"):
+        try:
+            with open("inventory.json", "r") as file:
+                data = json.load(file)
+                print("inventory.json found.")
+                print("Inventory loaded successfully.")
+                return Inventory.from_dict(data)
+        except json.JSONDecodeError:
+            print("inventory.json is corrupted. Starting with default inventory.")
 
-  default_data = {
-      "P001": {"name": "Laptop", "price": 1200.00, "stock": 15},
-      "P002": {"name": "Mouse", "price": 25.50, "stock": 40},
-      "P003": {"name": "Keyboard", "price": 45.00, "stock": 25},
-  }
-  return Inventory.from_dict(default_data)
-
-
-def save_inventory(inventory: Inventory) -> None:
-  with open("inventory.json", "w") as file:
-    json.dump(inventory.to_dict(), file, indent=4)
-  print("Inventory saved successfully to inventory.json.")
+    default_data = {
+        "P001": {"type": "physical", "name": "Laptop", "price": 1200.00, "stock": 15, "weight": 2.5},
+        "P002": {"type": "physical", "name": "Mouse", "price": 25.50, "stock": 40, "weight": 0.2},
+        "P003": {"type": "digital", "name": "Keyboard Software", "price": 45.00, "stock": 25, "download_size": 150.0},
+    }
+    return Inventory.from_dict(default_data)
 
 
 def add_product_menu(inventory: Inventory) -> None:
-  print("\nAdd New Product")
-  new_id = inventory.generate_next_id()
-  print(f"Product ID: {new_id}")
+    print("\nAdd New Product")
+    print("1. Physical Product")
+    print("2. Digital Product")
+    choice = input("Select product type (1 or 2): ").strip()
 
-  product_name = input("Product Name: ").strip()
-  if not product_name:
-    print("Product name cannot be empty.")
-    return
+    if choice not in ["1", "2"]:
+        print("Invalid product type selection.")
+        return
 
-  try:
-    price = float(input("Price: ").strip())
-    stock = int(input("Stock Quantity: ").strip())
-  except ValueError:
-    print("Invalid input. Price and Stock must be numeric.")
-    return
+    new_id = inventory.generate_next_id()
+    print(f"Product ID: {new_id}")
 
-  if price < 0 or stock < 0:
-    print("Price and stock cannot be negative.")
-    return
+    product_name = input("Product Name: ").strip()
+    if not product_name:
+        print("Product name cannot be empty.")
+        return
 
-  new_product = Product(new_id, product_name, price, stock)
-  inventory.add_product(new_product)
-  print("\nProduct added successfully!")
+    try:
+        price = float(input("Price: ").strip())
+        stock = int(input("Stock Quantity: ").strip())
+        if choice == "1":
+            weight = float(input("Weight (kg): ").strip())
+        else:
+            download_size = float(input("Download Size (MB): ").strip())
+    except ValueError:
+        print("Invalid input. Numeric values expected.")
+        return
+
+    if price < 0 or stock < 0 or (choice == "1" and weight < 0) or (choice == "2" and download_size < 0):
+        print("Values cannot be negative.")
+        return
+
+    if choice == "1":
+        new_product = PhysicalProduct(new_id, product_name, price, stock, weight)
+    else:
+        new_product = DigitalProduct(new_id, product_name, price, stock, download_size)
+
+    inventory.add_product(new_product)
+    print("\nProduct added successfully!")
 
 
 def update_stock_menu(inventory: Inventory) -> None:
