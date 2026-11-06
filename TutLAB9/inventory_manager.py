@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import os
 import json
 
@@ -41,6 +42,9 @@ class PhysicalProduct(Product):
     super().display_information()
     print(f"Weight: {self.weight} kg")
 
+  def get_fulfillment_method(self) -> str:
+    return "Physical Product - Requires shipping"
+
 class DigitalProduct(Product):
   
   def __init__(self, product_id: str, name: str, price: float, stock: int, file_size: float):
@@ -51,7 +55,8 @@ class DigitalProduct(Product):
     super().display_information()
     print(f"File Size: {self.file_size} MB")
 
-
+  def get_fulfillment_method(self) -> str:
+    return "Digital Product - Instant download"
 
 class Inventory:
 
