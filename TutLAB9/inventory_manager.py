@@ -3,6 +3,11 @@ import os
 import json
 
 
+class CanBeShipped(ABC):
+  
+  @abstractmethod
+  def calculate_shipping_cost(self) -> float:
+    pass
 
 class Product:
 
@@ -44,6 +49,10 @@ class PhysicalProduct(Product):
 
   def get_fulfillment_method(self) -> str:
     return "Physical Product - Requires shipping"
+
+  def calculate_shipping_cost(self) -> float:
+    return self.weight * 5.0  # Example: $5 per kg
+  
 
 class DigitalProduct(Product):
   
