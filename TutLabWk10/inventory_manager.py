@@ -152,6 +152,29 @@ class Inventory:
         return inventory
 
 
+class OrderLine:
+    def __init__(self, product: Product, quantity: int):
+        self.product: Product = product
+        self.quantity: int = quantity
+
+    def calculate_subtotal(self) -> float:
+        return self.product.price * self.quantity
+
+
+class Order:
+    def __init__(self, order_id: str):
+        self.order_id: str = order_id
+        self.order_lines: list[OrderLine] = []
+
+    def add_order_line(self, product: Product, quantity: int) -> None:
+        order_line = OrderLine(product, quantity)
+        self.order_lines.append(order_line)
+
+    def calculate_total(self) -> float:
+        total = 0.0
+        for line in self.order_lines:
+            total += line.calculate_subtotal()
+        return total
 
 class Supplier:
     def __init__(self, supplier_id: str, name: str, contact_email: str):
@@ -165,22 +188,45 @@ class Supplier:
 
 
 def load_inventory() -> Inventory:
+    default_supplier = Supplier("S001", "Micron Technologies", "contact@micron.com")
+
     if os.path.exists("inventory.json"):
         try:
             with open("inventory.json", "r") as file:
                 data = json.load(file)
                 print("inventory.json found.")
                 print("Inventory loaded successfully.")
-                return Inventory.from_dict(data)
+                inventory = Inventory()
+                for p_id, details in data.items():
+                    p_type = details.get("type", "physical")
+                    if p_type == "physical":
+                        prod = PhysicalProduct(
+                            product_id=p_id,
+                            name=details["name"],
+                            price=float(details["price"]),
+                            stock=int(details["stock"]),
+                            weight=float(details.get("weight", 1.0)),
+                            supplier=default_supplier
+                        )
+                    elif p_type == "digital":
+                        prod = DigitalProduct(
+                            product_id=p_id,
+                            name=details["name"],
+                            price=float(details["price"]),
+                            stock=int(details["stock"]),
+                            file_size=float(details.get("file_size", 100.0)),
+                            supplier=default_supplier
+                        )
+                    inventory.add_product(prod)
+                return inventory
         except json.JSONDecodeError:
             print("inventory.json is corrupted. Starting with default inventory.")
 
-    default_data = {
-        "P001": {"type": "physical", "name": "Laptop", "price": 1200.00, "stock": 15, "weight": 2.5},
-        "P002": {"type": "physical", "name": "Mouse", "price": 25.50, "stock": 40, "weight": 0.2},
-        "P003": {"type": "digital", "name": "Keyboard Software", "price": 45.00, "stock": 25, "file_size": 150.0},
-    }
-    return Inventory.from_dict(default_data)
+    inventory = Inventory()
+    inventory.add_product(PhysicalProduct("P001", "Laptop", 1200.00, 15, 2.5, default_supplier))
+    inventory.add_product(PhysicalProduct("P002", "Mouse", 25.50, 40, 0.2, default_supplier))
+    inventory.add_product(DigitalProduct("P003", "Keyboard Software", 45.00, 25, 150.0, default_supplier))
+    return inventory
 
 
 def save_inventory(inventory: Inventory) -> None:
@@ -210,22 +256,28 @@ def add_product_menu(inventory: Inventory) -> None:
     try:
         price = float(input("Price: ").strip())
         stock = int(input("Stock Quantity: ").strip())
+        supplier_id = input("Supplier ID: ").strip()
+        supplier_name = input("Supplier Name: ").strip()
+        supplier_email = input("Supplier Contact Info: ").strip()
+        supplier = Supplier(supplier_id, supplier_name, supplier_email)
+
         if choice == "1":
             weight = float(input("Weight (kg): ").strip())
         else:
             file_size = float(input("File Size (MB): ").strip())
     except ValueError:
-        print("Invalid input. Numeric values expected.")
+        print("Invalid input. Please enter numeric values for price, stock, weight, and file size.")
         return
+
 
     if price < 0 or stock < 0 or (choice == "1" and weight < 0) or (choice == "2" and file_size < 0):
         print("Values cannot be negative.")
         return
 
     if choice == "1":
-        new_product = PhysicalProduct(new_id, product_name, price, stock, weight)
+        new_product = PhysicalProduct(new_id, product_name, price, stock, weight, supplier)
     else:
-        new_product = DigitalProduct(new_id, product_name, price, stock, file_size)
+        new_product = DigitalProduct(new_id, product_name, price, stock, file_size, supplier)
 
     inventory.add_product(new_product)
     print("\nProduct added successfully!")
