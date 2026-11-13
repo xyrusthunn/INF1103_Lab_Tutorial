@@ -12,11 +12,12 @@ class CanBeShipped(ABC):
 
 class Product(ABC):
 
-    def __init__(self, product_id: str, name: str, price: float, stock: int):
+    def __init__(self, product_id: str, name: str, price: float, stock: int, supplier: Supplier):
         self._product_id = product_id
         self.name = name
         self._price = price
         self.stock = stock
+        self.supplier: Supplier = supplier
 
     @property
     def product_id(self):
@@ -32,10 +33,8 @@ class Product(ABC):
         self.stock = quantity
 
     def display_information(self) -> None:
-        print(
-            f"ID: {self._product_id} | Name: {self.name} | Price:"
-            f" ${self._price:.2f} | Stock: {self.stock}"
-        )
+        print(f"ID: {self._product_id} | Name: {self.name} | Price: ${self._price:.2f} | Stock: {self.stock}")
+        self.supplier.display_information()
 
     @abstractmethod
     def get_fulfilment_info(self) -> str:
@@ -44,8 +43,8 @@ class Product(ABC):
 
 class PhysicalProduct(Product, CanBeShipped):
 
-    def __init__(self, product_id: str, name: str, price: float, stock: int, weight: float):
-        super().__init__(product_id, name, price, stock)
+    def __init__(self, product_id: str, name: str, price: float, stock: int, weight: float, supplier: Supplier):
+        super().__init__(product_id, name, price, stock, supplier)
         self.weight = weight
 
     def display_information(self) -> None:
@@ -61,8 +60,8 @@ class PhysicalProduct(Product, CanBeShipped):
 
 class DigitalProduct(Product):
 
-    def __init__(self, product_id: str, name: str, price: float, stock: int, file_size: float):
-        super().__init__(product_id, name, price, stock)
+    def __init__(self, product_id: str, name: str, price: float, stock: int, file_size: float, supplier: Supplier):
+        super().__init__(product_id, name, price, stock, supplier)
         self.file_size = file_size
 
     def display_information(self) -> None:
@@ -76,10 +75,17 @@ class DigitalProduct(Product):
 class Inventory:
 
     def __init__(self):
-        self.products = {}
+        self.products = dict[str, Product] = {}
 
     def add_product(self, product: Product) -> None:
         self.products[product.product_id] = product
+
+
+    def remove_product(self, product_id: str) -> None:
+        if product_id.upper in self.products:
+            del self.products[product_id]
+        else:
+            print(f"Product ID {product_id} not found in inventory.")
 
     def search_product(self, product_id: str) -> Product | None:
         return self.products.get(product_id.upper())
@@ -144,6 +150,18 @@ class Inventory:
                 )
             inventory.add_product(prod)
         return inventory
+
+
+
+class Supplier:
+    def __init__(self, supplier_id: str, name: str, contact_email: str):
+        self.supplier_id: str = supplier_id
+        self.name: str = name
+        self.contact_email: str = contact_email
+
+    def display_information(self) -> None:
+        print(f"Supplier ID: {self.supplier_id} | Name: {self.name} | Contact Info: {self.contact_email}")
+
 
 
 def load_inventory() -> Inventory:
