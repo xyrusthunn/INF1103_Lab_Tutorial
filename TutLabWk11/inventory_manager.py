@@ -112,7 +112,7 @@ class Inventory:
 
 
     def remove_product(self, product_id: str) -> None:
-        if product_id.upper in self.products:
+        if product_id.upper() in self.products:
             del self.products[product_id]
         else:
             print(f"Product ID {product_id} not found in inventory.")
@@ -189,7 +189,7 @@ class DiscountStrategy(ABC):
         pass
 
 class NoDiscount(DiscountStrategy):
-    def apply(self, total: float) -> float:
+    def apply_discount(self, total: float) -> float:
         return total
 
 class PercentageDiscount(DiscountStrategy):
@@ -210,7 +210,7 @@ class BulkDiscount(DiscountStrategy):
         return total
 
 class StudentDiscount(DiscountStrategy):
-    def apply(self, total: float) -> float:
+    def apply_discount(self, total: float) -> float:
         return total * 0.95  # 5% discount for students
 
 
@@ -249,8 +249,8 @@ def get_positive_float(prompt: str) -> float:
     while True:
         try:
             value = float(input(prompt).strip())
-            if value < 0:
-                print("Value cannot be negative. Please enter a positive number.")
+            if value <= 0:
+                print("Value cannot be zero or negative. Please enter a positive number.")
                 continue
             return value
         except ValueError:
@@ -290,7 +290,7 @@ def load_products_from_csv(file_path: str, inventory: Inventory, supplier: Suppl
             print(f"{loaded_count} products loaded.")
     finally:
         print("Load attempt finished.")
-        
+
 
 
 def load_inventory() -> Inventory:
@@ -305,7 +305,7 @@ def load_inventory() -> Inventory:
                 inventory = Inventory()
                 for p_id, details in data.items():
                     p_type = details.get("type", "physical")
-                    prod = ProductFactory.create(
+                    prod = ProductFactory.create_product(
                             product_type=p_type,
                             product_id=p_id,
                             name=details["name"],
@@ -355,7 +355,7 @@ def add_product_menu(inventory: Inventory) -> None:
     file_size = 100.0
 
     try:
-        price = float(input("Price: ").strip())
+        price = get_positive_float("Price: ")
         stock = int(input("Stock Quantity: ").strip())
         supplier_id = input("Supplier ID: ").strip()
         supplier_name = input("Supplier Name: ").strip()
@@ -363,9 +363,9 @@ def add_product_menu(inventory: Inventory) -> None:
         supplier = Supplier(supplier_id, supplier_name, supplier_email)
 
         if choice == "1":
-            weight = float(input("Weight (kg): ").strip())
+            weight = get_positive_float("Weight (kg): ")
         else:
-            file_size = float(input("File Size (MB): ").strip())
+            file_size = get_positive_float("File Size (MB): ")
     except ValueError:
         print("Invalid input. Please enter numeric values for price, stock, weight, and file size.")
         return
