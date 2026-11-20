@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 import json
 import os
+import csv
+
+
+
+
 
 class Supplier:
     def __init__(self, supplier_id: str, name: str, contact_email: str):
@@ -22,6 +27,10 @@ class CanBeShipped(ABC):
 class Product(ABC):
 
     def __init__(self, product_id: str, name: str, price: float, stock: int, supplier: Supplier):
+        if price <= 0:
+            raise ValueError("Price must be a positive value.")
+        if stock < 0:
+            raise ValueError("Stock count cannot be negative.")
         self._product_id = product_id
         self.name = name
         self._price = price
@@ -207,6 +216,8 @@ class StudentDiscount(DiscountStrategy):
 
 class OrderLine:
     def __init__(self, product: Product, quantity: int):
+        if quantity <= 0:
+            raise ValueError("Quantity must be a positive integer.")
         self.product: Product = product
         self.quantity: int = quantity
 
@@ -233,6 +244,53 @@ class Order:
             total += line.calculate_subtotal()
         return self.discount.apply_discount(total)
 
+
+def get_positive_float(prompt: str) -> float:
+    while True:
+        try:
+            value = float(input(prompt).strip())
+            if value < 0:
+                print("Value cannot be negative. Please enter a positive number.")
+                continue
+            return value
+        except ValueError:
+            print("Invalid input. Please enter a numeric value.")
+
+def load_products_from_csv(file_path: str, inventory: Inventory, supplier: Supplier) -> None:
+    loaded_count = 0
+    try:
+        file = open(file_path, mode='r', newline='', encoding='utf-8')
+    except FileNotFoundError:
+        print(f"Products file not found: {file_path}.")
+    else:
+        with file:
+            reader = csv.reader(file)
+            next(reader, None)  # Skip header row
+            for row_num, row in enumerate(reader, start=2):
+                if not row:
+                    continue  # Skip empty rows
+                try:
+                    product_type = row[0].strip().lower()
+                    product_id = row[1].strip()
+                    name = row[2].strip()
+                    price = float(row[3].strip())
+                    stock = int(row[4].strip())
+                    product = ProductFactory.create_product(
+                        product_type=product_type,
+                        product_id=product_id,
+                        name=name,
+                        price=price,
+                        stock=stock,
+                        supplier=supplier
+                    )
+                    inventory.add_product(product)
+                    loaded_count += 1
+                except (ValueError, IndexError) as e:
+                    print(f"Skipping invalid row {row_num} ({row}): {e}")
+            print(f"{loaded_count} products loaded.")
+    finally:
+        print("Load attempt finished.")
+        
 
 
 def load_inventory() -> Inventory:
