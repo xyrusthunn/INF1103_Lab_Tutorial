@@ -81,6 +81,18 @@ class DigitalProduct(Product):
         return "Digital Product - Instant download"
 
 
+class ProductFactory:
+    @staticmethod
+    def create_product(product_type: str, product_id: str, name: str, price: float, stock: int, supplier: Supplier, weight: float = 1.0, file_size: float = 100.0) -> Product:
+        normalized_type = product_type.strip().lower()
+        if normalized_type == "physical":
+            return PhysicalProduct(product_id, name, price, stock, weight, supplier)
+        elif normalized_type == "digital":
+            return DigitalProduct(product_id, name, price, stock, file_size, supplier)
+        else:
+            raise ValueError(f"Unknown product type: {product_type}")
+
+
 class Inventory:
 
     def __init__(self):
@@ -235,21 +247,13 @@ def load_inventory() -> Inventory:
                 inventory = Inventory()
                 for p_id, details in data.items():
                     p_type = details.get("type", "physical")
-                    if p_type == "physical":
-                        prod = PhysicalProduct(
+                    prod = ProductFactory.create(
+                            product_type=p_type,
                             product_id=p_id,
                             name=details["name"],
                             price=float(details["price"]),
                             stock=int(details["stock"]),
                             weight=float(details.get("weight", 1.0)),
-                            supplier=default_supplier
-                        )
-                    elif p_type == "digital":
-                        prod = DigitalProduct(
-                            product_id=p_id,
-                            name=details["name"],
-                            price=float(details["price"]),
-                            stock=int(details["stock"]),
                             file_size=float(details.get("file_size", 100.0)),
                             supplier=default_supplier
                         )
@@ -289,6 +293,9 @@ def add_product_menu(inventory: Inventory) -> None:
         print("Product name cannot be empty.")
         return
 
+    weight = 1.0
+    file_size = 100.0
+
     try:
         price = float(input("Price: ").strip())
         stock = int(input("Stock Quantity: ").strip())
@@ -310,11 +317,18 @@ def add_product_menu(inventory: Inventory) -> None:
         print("Values cannot be negative.")
         return
 
-    if choice == "1":
-        new_product = PhysicalProduct(new_id, product_name, price, stock, weight, supplier)
-    else:
-        new_product = DigitalProduct(new_id, product_name, price, stock, file_size, supplier)
-
+    product_type = "physical" if choice == "1" else "digital"
+    new_product = ProductFactory.create_product(
+        product_type=product_type,
+        product_id=new_id,
+        name=product_name,
+        price=price,
+        stock=stock,
+        supplier=supplier,
+        weight=weight,
+        file_size=file_size
+    )
+    
     inventory.add_product(new_product)
     print("\nProduct added successfully!")
 
