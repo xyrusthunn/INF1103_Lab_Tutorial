@@ -2,6 +2,15 @@ from abc import ABC, abstractmethod
 import json
 import os
 
+class Supplier:
+    def __init__(self, supplier_id: str, name: str, contact_email: str):
+        self.supplier_id: str = supplier_id
+        self.name: str = name
+        self.contact_email: str = contact_email
+
+    def display_information(self) -> None:
+        print(f"Supplier ID: {self.supplier_id} | Name: {self.name} | Contact Info: {self.contact_email}")
+
 
 class CanBeShipped(ABC):
 
@@ -75,7 +84,7 @@ class DigitalProduct(Product):
 class Inventory:
 
     def __init__(self):
-        self.products = dict[str, Product] = {}
+        self.products: dict[str, Product] = {}
 
     def add_product(self, product: Product) -> None:
         self.products[product.product_id] = product
@@ -175,15 +184,6 @@ class Order:
         for line in self.order_lines:
             total += line.calculate_subtotal()
         return total
-
-class Supplier:
-    def __init__(self, supplier_id: str, name: str, contact_email: str):
-        self.supplier_id: str = supplier_id
-        self.name: str = name
-        self.contact_email: str = contact_email
-
-    def display_information(self) -> None:
-        print(f"Supplier ID: {self.supplier_id} | Name: {self.name} | Contact Info: {self.contact_email}")
 
 
 
